@@ -1,0 +1,10 @@
+﻿Room No,Room Type,Floor,Capacity,AC,Price/Day (₹),Status,Customer ID
+101,Standard,1,2,No,1200,Available,-
+102,Standard,1,2,Yes,1500,Available,-
+103,Deluxe,1,3,Yes,2200,Available,-
+104,Deluxe,1,3,Yes,2200,Maintenance,-
+201,Deluxe,2,3,Yes,2500,Available,-
+202,Luxury,2,4,Yes,3500,Available,-
+203,Luxury,2,4,Yes,3500,Available,-
+204,Suite,2,5,Yes,5000,Available,-
+301,Executive,3,2,Yes,4000,maintenance,-

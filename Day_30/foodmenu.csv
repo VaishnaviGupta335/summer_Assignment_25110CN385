@@ -1,0 +1,16 @@
+﻿Food ID,Food Name,Category,Price (₹),Available,Preparation Time (min)
+F001,Veg Thali,Main Course,180,Yes,20
+F002,Paneer Butter Masala,Main Course,250,Yes,25
+F003,Butter Naan,Bread,40,Yes,10
+F004,Veg Biryani,Main Course,220,Yes,25
+F005,Chicken Biryani,Main Course,320,Yes,30
+F006,Masala Dosa,South Indian,120,Yes,15
+F007,Idli Sambar,South Indian,90,Yes,15
+F008,Hakka Noodles,Chinese,180,Yes,20
+F009,Manchurian,Chinese,190,Yes,20
+F010,Tomato Soup,Soup,100,Yes,15
+F011,Gulab Jamun,Dessert,60,Yes,10
+F012,Ice Cream,Dessert,80,Yes,5
+F013,Tea,Beverage,30,Yes,5
+F014,Coffee,Beverage,50,Yes,5
+F015,Mineral Water (1L),Beverage,25,Yes,0

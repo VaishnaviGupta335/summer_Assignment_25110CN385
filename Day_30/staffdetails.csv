@@ -1,0 +1,11 @@
+﻿Staff ID,Name,Department,Designation,Phone,Shift,Salary (₹)
+S001,Rahul Sharma,Reception,Receptionist,9876543210,Morning,22000
+S002,Priya Verma,Housekeeping,Housekeeper,9123456789,Evening,18000
+S003,Amit Singh,Security,Security Guard,9012345678,Night,20000
+S004,Neha Gupta,Restaurant,Waiter,9988776655,Morning,17000
+S005,Arjun Kumar,Kitchen,Chef,9871234567,Morning,35000
+S006,Sneha Patel,Maintenance,Electrician,9765432109,Day,25000
+S007,Mohit Yadav,Management,Manager,9898989898,General,50000
+S008,Pooja Mishra,Laundry,Laundry Staff,9876501234,Evening,16000
+S009,Karan Joshi,Kitchen,Assistant Chef,9123409876,Evening,22000
+S010,Anjali Sharma,Reception,Receptionist,9001122334,Night,23000
