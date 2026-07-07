@@ -12,7 +12,7 @@ Data is stored in CSV files:
     customerdetails.csv  -> customer / booking records (auto-created)
     orders.csv           -> food order records        (auto-created)
 
-Author : (your name here)
+Author : (Vaishnavi Gupta)
 =========================================================
 """
 
@@ -31,10 +31,11 @@ ROOM_FILE = os.path.join(BASE_DIR, "roomdetails.csv")
 FOOD_FILE = os.path.join(BASE_DIR, "foodmenu.csv")
 CUSTOMER_FILE = os.path.join(BASE_DIR, "customerdetails.csv")
 ORDER_FILE = os.path.join(BASE_DIR, "orders.csv")
+BILLS_DIR = os.path.join(BASE_DIR, "bills")   # generated bill receipts (.txt) are saved here
 
-# Field names for the two files this program creates on its own
-CUSTOMER_FIELDS = ["Customer ID", "Name", "Phone", "Address",
-                    "Room No", "Check-in", "Check-out", "Status"]
+# Field names for the files this program creates/manages on its own
+CUSTOMER_FIELDS = ["Customer ID", "Name", "Phone", "Address", "Room No",
+                    "Price/Day (₹)", "Check-in", "Check-out", "Status"]
 ORDER_FIELDS = ["Order ID", "Customer ID", "Food ID", "Food Name",
                 "Quantity", "Total Price (₹)", "Date Time"]
 
@@ -399,11 +400,13 @@ def book_room():
     name = get_nonempty("Customer Name: ")
     phone = get_nonempty("Phone: ")
     address = get_nonempty("Address: ")
+    price_per_day = target_room.get("Price/Day (₹)", 0)
     checkin = datetime.now().strftime("%Y-%m-%d")
     checkout = get_nonempty("Expected Check-out Date (YYYY-MM-DD): ")
 
     new_customer = {"Customer ID": new_id, "Name": name, "Phone": phone,
                      "Address": address, "Room No": room_no,
+                     "Price/Day (₹)": price_per_day,
                      "Check-in": checkin, "Check-out": checkout, "Status": "Checked-in"}
     customers.append(new_customer)
     write_csv(CUSTOMER_FILE, customers, CUSTOMER_FIELDS)
@@ -414,7 +417,8 @@ def book_room():
     write_csv(ROOM_FILE, room_rows, room_fieldnames)
 
     print(f"\n Room {room_no} booked successfully for {name}.")
-    print(f" Customer ID: {new_id}  (please remember this for food orders / checkout)")
+    print(f" Room Rate: ₹{price_per_day}/day")
+    print(f" Customer ID: {new_id}  (please remember this for food orders / bill / checkout)")
 
 
 def checkout_room():
@@ -430,6 +434,15 @@ def checkout_room():
         print(" No active booking found for this Customer ID.")
         return
 
+    # Show the final bill first so the customer knows what they owe
+    print("\n Here is your final bill before checkout:")
+    generate_bill(customer_id, save_to_file=True)
+
+    confirm = get_nonempty("\nConfirm checkout after payment? (Yes/No): ").strip().lower()
+    if confirm not in ("yes", "y"):
+        print(" Checkout cancelled. Room remains booked.")
+        return
+
     room_no = target_customer["Room No"]
     room_rows = read_csv(ROOM_FILE)
     room_fieldnames = get_fieldnames(ROOM_FILE, ["Room No", "Room Type", "Floor", "Capacity",
@@ -442,7 +455,7 @@ def checkout_room():
 
     target_customer["Status"] = "Checked-out"
     write_csv(CUSTOMER_FILE, customers, CUSTOMER_FIELDS)
-    print(f" Customer {customer_id} checked out. Room {room_no} is now available.")
+    print(f"\n Customer {customer_id} checked out. Room {room_no} is now available.")
 
 
 # ===========================================================================
@@ -499,6 +512,89 @@ def view_all_orders():
 
 
 # ===========================================================================
+#  BILLING FUNCTIONS
+# ===========================================================================
+def calculate_stay_days(checkin_str):
+    """Number of days between check-in and today (minimum 1 day charged)."""
+    try:
+        checkin_date = datetime.strptime(checkin_str, "%Y-%m-%d")
+    except (ValueError, TypeError):
+        return 1
+    days = (datetime.now() - checkin_date).days
+    return max(days, 1)
+
+
+def generate_bill(customer_id, save_to_file=False):
+    """
+    Build and print an itemised bill for a customer:
+        Room charges = days stayed x price/day
+        Food charges = sum of all their food orders
+    Optionally saves the bill as a .txt receipt in the bills/ folder.
+    Returns the grand total (float), or None if the customer isn't found.
+    """
+    customers = read_csv(CUSTOMER_FILE)
+    customer = next((c for c in customers if c.get("Customer ID", "").upper() == customer_id.upper()), None)
+    if not customer:
+        print(" Customer ID not found.")
+        return None
+
+    # ---- Room charges ----
+    price_per_day = float(customer.get("Price/Day (₹)", 0) or 0)
+    days = calculate_stay_days(customer.get("Check-in"))
+    room_total = price_per_day * days
+
+    # ---- Food charges ----
+    orders = read_csv(ORDER_FILE)
+    my_orders = [o for o in orders if o.get("Customer ID", "").upper() == customer_id.upper()]
+    food_total = sum(float(o.get("Total Price (₹)", 0) or 0) for o in my_orders)
+
+    grand_total = room_total + food_total
+
+    lines = []
+    lines.append("=" * 50)
+    lines.append("            HOTEL - FINAL BILL / INVOICE")
+    lines.append("=" * 50)
+    lines.append(f"Customer ID   : {customer.get('Customer ID')}")
+    lines.append(f"Name          : {customer.get('Name')}")
+    lines.append(f"Phone         : {customer.get('Phone')}")
+    lines.append(f"Room No       : {customer.get('Room No')}")
+    lines.append(f"Check-in      : {customer.get('Check-in')}")
+    lines.append(f"Bill Date     : {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    lines.append("-" * 50)
+    lines.append("ROOM CHARGES")
+    lines.append(f"  {days} day(s) x Rs.{price_per_day:.2f}/day = Rs.{room_total:.2f}")
+    lines.append("-" * 50)
+    lines.append("FOOD CHARGES")
+    if my_orders:
+        for o in my_orders:
+            lines.append(f"  {o['Food Name']} x {o['Quantity']} = Rs.{float(o['Total Price (₹)']):.2f}")
+    else:
+        lines.append("  (no food orders)")
+    lines.append(f"  Food Subtotal = Rs.{food_total:.2f}")
+    lines.append("-" * 50)
+    lines.append(f"GRAND TOTAL   : Rs.{grand_total:.2f}")
+    lines.append("=" * 50)
+
+    receipt = "\n".join(lines)
+    print("\n" + receipt + "\n")
+
+    if save_to_file:
+        os.makedirs(BILLS_DIR, exist_ok=True)
+        filename = os.path.join(BILLS_DIR, f"Bill_{customer.get('Customer ID')}.txt")
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(receipt)
+        print(f" Receipt saved to: {filename}")
+
+    return grand_total
+
+
+def view_bill():
+    print("\n===== GENERATE / VIEW BILL =====")
+    customer_id = get_nonempty("Enter Customer ID: ").upper()
+    generate_bill(customer_id, save_to_file=True)
+
+
+# ===========================================================================
 #  ADMIN MENU
 # ===========================================================================
 def admin_menu():
@@ -510,7 +606,8 @@ def admin_menu():
         3. Food Menu Management
         4. View Customer Details
         5. View All Food Orders
-        6. Logout
+        6. Generate Bill for a Customer
+        7. Logout
         ==============================================
         """)
         choice = input("Enter choice: ").strip()
@@ -527,6 +624,9 @@ def admin_menu():
             view_all_orders()
             pause()
         elif choice == "6":
+            view_bill()
+            pause()
+        elif choice == "7":
             print("\n Logged out from Admin.\n")
             break
         else:
@@ -546,7 +646,8 @@ def user_menu():
         4. View Food Menu
         5. Order Food
         6. View My Food Orders
-        7. Logout
+        7. View / Generate My Bill
+        8. Logout
         =============================================
         """)
         choice = input("Enter choice: ").strip()
@@ -563,6 +664,8 @@ def user_menu():
         elif choice == "6":
             view_my_orders()
         elif choice == "7":
+            view_bill()
+        elif choice == "8":
             print("\n Logged out from User.\n")
             break
         else:
@@ -574,9 +677,10 @@ def user_menu():
 #  MAIN PROGRAM
 # ===========================================================================
 def main():
-    # make sure the auto-generated files exist
+    # make sure the auto-generated files/folders exist
     ensure_file(CUSTOMER_FILE, CUSTOMER_FIELDS)
     ensure_file(ORDER_FILE, ORDER_FIELDS)
+    os.makedirs(BILLS_DIR, exist_ok=True)
 
     while True:
         print("""

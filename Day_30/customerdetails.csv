@@ -1,1 +1,2 @@
-﻿Customer ID,Name,Phone,Address,Room No,Check-in,Check-out,Status
+﻿Customer ID,Name,Phone,Address,Room No,Price/Day (₹),Check-in,Check-out,Status
+C001,Ragini,9580776121,Lucknow,102,,2026-07-07,2026-07-10,Checked-out
